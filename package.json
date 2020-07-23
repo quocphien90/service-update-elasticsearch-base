@@ -25,7 +25,7 @@
     "express": "^4.17.1",
     "microservice-utility-vn-node": "github:pizzahutuk/microservice-utility-vn-node",
     "moment": "^2.24.0",
-    "moment-timezone": "^0.5.27",
+    "moment-timezone": "^0.5.31",
     "multer": "^1.4.2",
     "mysql": "^2.17.1",
     "reflect-metadata": "^0.1.13",

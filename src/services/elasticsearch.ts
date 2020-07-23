@@ -11,21 +11,30 @@ const deleteOldAllIndexElasticSearch = (elasticSearchIndiceName: string) => {
 
 
 const deleteAddressIndexByAddressCode = async (addressCodeArray: string[], elasticSearchIndiceName: string) => {
-    let promiseDeleteIndexesByQueryArray = [];
-    console.log('------------------- Start delete old address code in ElasticSearch array addressCodeArray : ' + addressCodeArray.join(',') + '-------------------');
-    const LIMIT_DELETE = 10;
-    let totalDelete = 0;
-    for (const addressCode of addressCodeArray) {
-        const promiseDeleteIndexesByQuery = elasticSearchRepo.deleteElasticSearchByAddressCode(addressCode, elasticSearchIndiceName);
-        promiseDeleteIndexesByQueryArray.push(promiseDeleteIndexesByQuery);
-        if(totalDelete == LIMIT_DELETE){
-            await Promise.all(promiseDeleteIndexesByQueryArray);
-            totalDelete = 0;
-            promiseDeleteIndexesByQueryArray = [];
+    try {
+        let promiseDeleteIndexesByQueryArray = [];
+        console.log('------------------- Start delete old address code in ElasticSearch array addressCodeArray : ' + addressCodeArray.join(',') + '-------------------');
+        const LIMIT_DELETE = 100;
+        let totalDelete = 0;
+        let countBulk = 1;
+        for (const addressCode of addressCodeArray) {
+            const promiseDeleteIndexesByQuery = elasticSearchRepo.deleteElasticSearchByAddressCode(addressCode, elasticSearchIndiceName);
+            promiseDeleteIndexesByQueryArray.push(promiseDeleteIndexesByQuery);
+            if (totalDelete == LIMIT_DELETE) {
+                console.log('---------Start Delete Bulk ' + countBulk + '-------------------')
+                await Promise.all(promiseDeleteIndexesByQueryArray);
+                totalDelete = 0;
+                promiseDeleteIndexesByQueryArray = [];
+                countBulk++;
+            }
+            totalDelete++;
         }
-        totalDelete ++;
+        console.log('---------Finish Delete Bulk -' + promiseDeleteIndexesByQueryArray.length + '------------------')
+        return Promise.all(promiseDeleteIndexesByQueryArray);
+    } catch (e) {
+        console.log(e)
+        throw e;
     }
-    return Promise.all(promiseDeleteIndexesByQueryArray);
 };
 
 
@@ -115,24 +124,26 @@ const deleteElasticIndexByAddressCodeSplitBulk = async (addressCodeArray: string
 
 const createIndexElasticSearchSplitBulk = async (addressIndexArray: BaseAddressIndex[], elasticSearchIndiceName: string) => {
     console.log('-------------------Total ' + addressIndexArray.length + ' index ElasticSearch-------------------')
-    const LIMIT_INSERT_ES = 60;
+    const LIMIT_INSERT_ES = 200;
     let countBulkInsert = 0;
+    let countBulk = 1;
     let bulkCreateIndexArray = [];
     const currentAddressIndex = { index: { _index: elasticSearchIndiceName, _type: '_doc' } };
     for (const addressIndex of addressIndexArray) {
         bulkCreateIndexArray.push(currentAddressIndex);
         bulkCreateIndexArray.push(addressIndex);
         if (countBulkInsert === LIMIT_INSERT_ES) {
-            console.log('-------------------Start save ' + countBulkInsert + ' indexes into ElasticSearch------------------');
+            console.log('-------------------Start save ' + countBulkInsert + ' indexes into ElasticSearch bulk num ' + countBulk + '------------------');
             await elasticSearchRepo.inserkBulkElasticSearch(bulkCreateIndexArray);
             bulkCreateIndexArray = [];
             countBulkInsert = 0;
+            countBulk++
         }
         countBulkInsert++;
     }
 
     if (countBulkInsert > 0) {
-        console.log('-------------------Start save ' + countBulkInsert + ' indexes into ElasticSearch------------------');
+        console.log('-------------------[End] Save the rest ' + countBulkInsert + ' indexes into ElasticSearch------------------');
         return elasticSearchRepo.inserkBulkElasticSearch(bulkCreateIndexArray);
     }
     return Promise.resolve();
