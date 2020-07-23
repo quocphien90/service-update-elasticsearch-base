@@ -8,7 +8,7 @@ export const updateElasticSearch = async (req: any, res: Response, done: NextFun
   try {
     const handler: BaseHandler = createFactory(clientId);
     const outletCode = (req.body.outlet_code != undefined && req.body.outlet_code != '') ? req.body.outlet_code : '';
-    console.log(req.body.outlet_code);
+    //console.log(req.body.outlet_code);
     await handler.proccessUpdateElasticSearch();
   } catch (error) {
     done(error);
